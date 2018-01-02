@@ -18,6 +18,18 @@ class EAST:
       self.load_model()
 
   def load_model(self):
+    try:
+      ckpt_state = tf.train.get_checkpoint_state(self.checkpoint)
+      model_path = os.path.join(self.checkpoint,
+                                os.path.basename(
+                                  ckpt_state.model_checkpoint_path))
+    except AttributeError as e:
+      import warnings
+      warnings.warn("Couldn't find model checkpoint, needs to be downloaded "
+                    "first")
+      raise
+
+
     self.input_images = tf.placeholder(tf.float32, shape=[None, None, None, 3],
                                        name='input_images')
     self.global_step = tf.get_variable('global_step', [],
@@ -33,10 +45,6 @@ class EAST:
 
     self.sess = tf.Session(config=tf.ConfigProto(allow_soft_placement=True))
 
-    ckpt_state = tf.train.get_checkpoint_state(self.checkpoint)
-    model_path = os.path.join(self.checkpoint,
-                              os.path.basename(
-                                ckpt_state.model_checkpoint_path))
     saver.restore(self.sess, model_path)
 
   def predict(self, img, min_score=.6, min_box_score=.1, nms_threshold=.2):
