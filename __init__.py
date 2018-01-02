@@ -1,4 +1,5 @@
 import matplotlib
+
 matplotlib.use('TkAgg')
 
 import os
@@ -6,12 +7,13 @@ import cv2
 import numpy as np
 import collections
 import tensorflow as tf
-import model
-from eval import resize_image, sort_poly, detect
+from .eval import resize_image, sort_poly, detect
+from . import model
 
 
 class EAST:
-  def __init__(self, checkpoint='./east_icdar2015_resnet_v1_50_rbox'):
+  def __init__(self, checkpoint=os.path.dirname(os.path.abspath(__file__)) +
+                                '/east_icdar2015_resnet_v1_50_rbox'):
     self.checkpoint = checkpoint
 
     if checkpoint:
@@ -28,7 +30,6 @@ class EAST:
       warnings.warn("Couldn't find model checkpoint, needs to be downloaded "
                     "first")
       raise
-
 
     self.input_images = tf.placeholder(tf.float32, shape=[None, None, None, 3],
                                        name='input_images')
@@ -89,10 +90,13 @@ class EAST:
         text_lines.append(tl)
     return text_lines
 
-  def draw(self, img, text_lines):
+  def draw(self, img, text_lines=None):
+    if not text_lines:
+      text_lines = self.predict(img)
+
     for t in text_lines:
-        d = np.array([t['x0'], t['y0'], t['x1'], t['y1'], t['x2'],
-                      t['y2'], t['x3'], t['y3']], dtype='int32')
-        d = d.reshape(-1, 2)
-        cv2.polylines(img, [d], isClosed=True, color=(255, 255, 0))
+      d = np.array([t['x0'], t['y0'], t['x1'], t['y1'], t['x2'],
+                    t['y2'], t['x3'], t['y3']], dtype='int32')
+      d = d.reshape(-1, 2)
+      cv2.polylines(img, [d], isClosed=True, color=(255, 255, 0))
     return img

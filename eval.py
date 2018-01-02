@@ -5,8 +5,15 @@ import os
 import numpy as np
 import tensorflow as tf
 
-import locality_aware_nms as nms_locality
-import lanms
+try:
+    from . import lanms
+    non_max_suppress = lanms.merge_quadrangle_n9
+except Exception as e:
+    import warnings
+    warnings.warn("Couldn't import lanms, might not have been built. Using "
+                  "python version instead")
+    from . import locality_aware_nms
+    non_max_suppress = locality_aware_nms.nms_locality
 
 tf.app.flags.DEFINE_string('test_data_path', '/tmp/ch4_test_images/images/', '')
 tf.app.flags.DEFINE_string('gpu_list', '0', '')
@@ -14,8 +21,8 @@ tf.app.flags.DEFINE_string('checkpoint_path', '/tmp/east_icdar2015_resnet_v1_50_
 tf.app.flags.DEFINE_string('output_dir', '/tmp/ch4_test_images/images/', '')
 tf.app.flags.DEFINE_bool('no_write_images', False, 'do not write images')
 
-import model
-from icdar import restore_rectangle
+from . import model
+from .icdar import restore_rectangle
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -95,7 +102,7 @@ def detect(score_map, geo_map, timer, score_map_thresh=0.8, box_thresh=0.1, nms_
     # nms part
     start = time.time()
     # boxes = nms_locality.nms_locality(boxes.astype(np.float64), nms_thres)
-    boxes = lanms.merge_quadrangle_n9(boxes.astype('float32'), nms_thres)
+    boxes = non_max_suppress(boxes.astype('float32'), nms_thres)
     timer['nms'] = time.time() - start
 
     if boxes.shape[0] == 0:
