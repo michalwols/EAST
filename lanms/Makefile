@@ -1,5 +1,5 @@
 CXXFLAGS = -I include  -std=c++11 -O3 $(shell python3-config --cflags)
-LDFLAGS = $(shell python3-config --ldflags)
+LDFLAGS = $(shell python3-config --ldflags) -L ${CONDA_PREFIX}/lib
 
 DEPS = lanms.h $(shell find include -xtype f)
 CXX_SOURCES = adaptor.cpp include/clipper/clipper.cpp
@@ -11,3 +11,4 @@ $(LIB_SO): $(CXX_SOURCES) $(DEPS)
 
 clean:
 	rm -rf $(LIB_SO)
+ 
