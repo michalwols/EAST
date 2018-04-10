@@ -44,11 +44,12 @@ class EAST:
                                                           self.global_step)
     saver = tf.train.Saver(variable_averages.variables_to_restore())
 
-    self.sess = tf.Session(config=tf.ConfigProto(allow_soft_placement=True))
+    self.sess = tf.Session(config=tf.ConfigProto(allow_soft_placement=True, log_device_placement=True))
 
     saver.restore(self.sess, model_path)
 
-  def predict(self, img, min_score=.6, min_box_score=.1, nms_threshold=.2):
+  def predict(self, img, min_score=.6, min_box_score=.1, nms_threshold=.2,
+              min_box_size=3):
     timer = collections.OrderedDict([
       ('net', 0),
       ('restore', 0),
@@ -68,6 +69,8 @@ class EAST:
                           score_map_thresh=min_score,
                           box_thresh=min_box_score, nms_thres=nms_threshold)
 
+    print(timer)
+
     scores = None
     if boxes is not None:
       scores = boxes[:, 8].reshape(-1)
@@ -80,15 +83,15 @@ class EAST:
       text_lines = []
       for box, score in zip(boxes, scores):
         box = sort_poly(box.astype(np.int32))
-        if np.linalg.norm(box[0] - box[1]) < 5 or np.linalg.norm(
-            box[3] - box[0]) < 5:
+        if np.linalg.norm(box[0] - box[1]) < min_box_size or np.linalg.norm(
+            box[3] - box[0]) < min_box_size:
           continue
         tl = collections.OrderedDict(zip(
           ['x0', 'y0', 'x1', 'y1', 'x2', 'y2', 'x3', 'y3'],
           map(float, box.flatten())))
         tl['score'] = float(score)
         text_lines.append(tl)
-    return text_lines
+    return text_lines, boxes, scores
 
   def draw(self, img, text_lines=None):
     if not text_lines:
