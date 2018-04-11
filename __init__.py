@@ -12,11 +12,15 @@ from . import model
 
 
 class EAST:
-  def __init__(self, checkpoint=os.path.dirname(os.path.abspath(__file__)) +
-                                '/east_icdar2015_resnet_v1_50_rbox'):
-    self.checkpoint = checkpoint
+  def __init__(self, checkpoint=None, gpu_memory_fraction=1.0):
+    self.checkpoint = checkpoint or (
+      os.path.dirname(os.path.abspath(__file__)) +
+      '/east_icdar2015_resnet_v1_50_rbox'
+    )
 
-    if checkpoint:
+    self.gpu_memory_fraction = gpu_memory_fraction
+
+    if self.checkpoint:
       self.load_model()
 
   def load_model(self):
@@ -44,7 +48,15 @@ class EAST:
                                                           self.global_step)
     saver = tf.train.Saver(variable_averages.variables_to_restore())
 
-    self.sess = tf.Session(config=tf.ConfigProto(allow_soft_placement=True, log_device_placement=True))
+    self.sess = tf.Session(
+      config=tf.ConfigProto(
+        allow_soft_placement=True,
+        log_device_placement=True,
+        gpu_options=tf.GPUOptions(
+          per_process_gpu_memory_fraction=self.gpu_memory_fraction
+        )
+      ),
+    )
 
     saver.restore(self.sess, model_path)
 
