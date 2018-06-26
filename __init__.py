@@ -12,13 +12,24 @@ from . import model
 
 
 class EAST:
-  def __init__(self, checkpoint=None, gpu_memory_fraction=1.0):
+  def __init__(self, checkpoint=None, gpu_memory_fraction=.5, session_config=None):
     self.checkpoint = checkpoint or (
       os.path.dirname(os.path.abspath(__file__)) +
       '/east_icdar2015_resnet_v1_50_rbox'
     )
-
-    self.gpu_memory_fraction = gpu_memory_fraction
+    
+    self.session_config = {
+      'allow_soft_placement': True,
+      'log_device_placement': True,
+      **({
+        'gpu_options': tf.GPUOptions(per_process_gpu_memory_fraction=gpu_memory_fraction)
+      } if gpu_memory_fraction > 0 else {
+        'device_count': {
+          'GPU': 0
+        }
+      },
+      **(session_config or {})
+    }
 
     if self.checkpoint:
       self.load_model()
@@ -47,15 +58,9 @@ class EAST:
     variable_averages = tf.train.ExponentialMovingAverage(0.997,
                                                           self.global_step)
     saver = tf.train.Saver(variable_averages.variables_to_restore())
-
+    
     self.sess = tf.Session(
-      config=tf.ConfigProto(
-        allow_soft_placement=True,
-        log_device_placement=True,
-        gpu_options=tf.GPUOptions(
-          per_process_gpu_memory_fraction=self.gpu_memory_fraction
-        )
-      ),
+      config=tf.ConfigProto(**self.session_config),
     )
 
     saver.restore(self.sess, model_path)
