@@ -27,7 +27,7 @@ class EAST:
         'device_count': {
           'GPU': 0
         }
-      },
+      }),
       **(session_config or {})
     }
 
